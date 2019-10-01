@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">   
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+</head>
+<body onload="getAllUsers()">
+
+<script type="text/javascript">
+
+var ticketSearch = new XMLHttpRequest;
+var commentSearch = new XMLHttpRequest;
+var userSearch = new XMLHttpRequest;
+
+var accessKey = "e4bb80570765be1ffdf0ce0c25a1dd7a97269375";
+var accessKey2 = "733623bab0f8c76a06572374fa814620b7f95db3";
+var ticketUrl = "https://app.mojohelpdesk.com/api/v2/tickets/search?query=created_by.id=";
+var commentUrl = "https://app.mojohelpdesk.com/api/v2/tickets/"
+var userUrl = "https://app.mojohelpdesk.com/api/v2/users?access_key=" + accessKey + "\&per_page=3000";
+
+var allUsers = '';
+var loadingImage = '<img src="loading2.gif">';
+var logo = '<img id="logo" src="epps_logo.png">';
+var searchMsg = "<p> Please type in Student ID number and click Find My Tickets </p>";
+
+$(function(){
+    $('#searchField').keypress(function(e){
+        if (e.which == 13) {
+            $('#searchButton').click();
+        }
+    })
+})
+
+function getAllUsers() {
+    document.getElementById("loadingImg").innerHTML = loadingImage;
+    document.getElementById("ticketResponse").innerHTML = logo;
+    userSearch.onreadystatechange  = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            allUsers = JSON.parse(this.responseText);
+            if (userSearch.responseText) {
+                document.getElementById("loadingImg").innerHTML = searchMsg;
+            }
+        }
+    }
+    userSearch.open("GET", userUrl, true);
+    userSearch.send(); 
+}
+
+function mojoQuery() {
+    document.getElementById("loadingImg").innerHTML = '';
+    var searchString = document.getElementById('searchField').value;
+    ticketSearch.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            var searchResponse = JSON.parse(this.responseText);
+            searchResponse.reverse();
+            var ticketQuery = 
+                    '<table class="table table-striped">' + 
+                    '<thead>' +
+                    '<tr>' +
+                    '<th scope="col"> </th>' +
+                    '<th scope="col"> Ticket Date </th>' +
+                    '<th scope="col"> Title </th>' +
+                    '</tr>' + 
+                    '</thead>' +
+                    '<tbody>';
+            var ticketId = '';
+            for (var i = 0; i < searchResponse.length; i++) {
+                ticketQuery += 
+                    '<tr>' + 
+                    '<td><button type="button" class="btn btn-danger" id="statusButton" onclick="mojoStatus(' + searchResponse[i].id + ',' + searchResponse[i].status_id + ')">Check Status</button></td>' +
+                    '<td>' + formatDate(searchResponse[i].created_on) + '</td>' +
+                    '<td>' + searchResponse[i].title + '</td>' +
+                    '</tr>';
+            }
+            ticketQuery += '</tbody></table>';
+            document.getElementById('ticketResponse').innerHTML = ticketQuery;
+        }
+    }
+    var searchUrl = ticketUrl + searchString + "\&access_key=" + accessKey + "\&per_page=999";
+    // console.log(searchUrl);
+    ticketSearch.open("GET", searchUrl, true);
+    ticketSearch.send();
+}
+
+function mojoStatus(id, statusId) {
+    // console.log(id);
+    // console.log(statusId);
+    var ticketId = id;
+    var ticketStatus = getStatus(statusId);
+    $('#statusModal').modal('show');
+    commentSearch.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            var statusResponse = JSON.parse(this.responseText);
+            statusResponse.reverse();
+            var statusQuery = 
+                    '<p><b> Ticket Status: </b><span class="badge" style="background-color: #bb0000;">' + ticketStatus + '</span><br>' +
+                    '<table class="table table-striped">' + 
+                    '<tr>' +
+                    '<th> Date </th>' +
+                    '<th> Comment </th>' +
+                    '</tr>';
+            for (var i = 0; i < statusResponse.length; i++) {
+                statusQuery += 
+                    '<tr>' + 
+                    '<td>' + formatDate(statusResponse[i].created_on) + ' </td>' +
+                    '<td><span class="badge">' + getUser(statusResponse[i].user_id) + '</span><p id="commentBody"> ' + statusResponse[i].body + '</p></td>' +
+                    '</tr>';
+            }
+            document.getElementById('statusModalBody').innerHTML = statusQuery;
+        }
+    }
+    var statusUrl = commentUrl + "/" + ticketId + "/comments?access_key=" + accessKey;
+    // console.log("statusUrl: ", statusUrl);
+    commentSearch.open("GET", statusUrl, true);
+    commentSearch.send();
+}
+
+function getUser(id) {
+    var userId = id;
+    var index = -1;
+    for (var i = 0; i < allUsers.length; i++) {
+        if (allUsers[i].id === userId) {
+            return allUsers[i].related_data.full_name;
+        }
+    }
+}
+
+function formatDate(date) {
+    var ticketDate = new Date(date);
+    var day = ticketDate.getDate();
+    var month = ticketDate.getMonth();
+    var year = ticketDate.getFullYear();
+    var formattedDate = (month+1) + "/" + day + "/" + year;
+    // console.log(formattedDate);
+    return formattedDate;
+}
+
+function getStatus(statusId) {
+    var statusDesc = '';
+    switch (statusId) {
+        case 10:
+            statusDesc = "New";
+            break;
+        case 20:
+            statusDesc = "In Progress";
+            break;
+        case 30:
+            statusDesc = "On Hold";
+            break;
+        case 40:
+            statusDesc = "Information Requested";
+            break;
+        case 50:
+            statusDesc = "Solved";
+            break;
+        case 60:
+            statusDesc = "Closed";
+            break;
+        default:
+            statusDesc = "Undefined";
+    }
+    return statusDesc;
+}
+
+function clearField() {
+    document.getElementById('ticketResponse').innerHTML = logo;
+    document.getElementById('searchField').value = '';
+    document.getElementById("loadingImg").innerHTML = searchMsg;
+}
+
+</script>
+
+<nav class="navbar navbar-light navbar-extend-sm" style="background-color: #bb0000;">
+    <span class="navbar-brand mb-0 h1" style="color: #ffffff;">EP Mojo Ticket Status</span>
+    <div class="input-group-append">
+        <input type="text" class="form-control" id="searchField" placeholder="Student ID">
+        <div align="center">
+            <button class="btn btn-default" type="button" id="searchButton" onclick="mojoQuery()">Find My Tickets</button>
+            <button class="btn btn-default" type="button" id="clearButton" onclick="clearField()">New Search</button>
+        </div>
+    </div>
+</nav>
+
+<div id="loadingImg" align="center"></div>
+<div id="ticketResponse" align="center"></div>
+
+<div id="statusModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Mojo Ticket Information</h4>
+            </div>
+            <div class="modal-body">
+                <p id="statusModalBody">Some text in the modal.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+
+<style>
+
+html {
+  font-size: 1rem;
+}
+#logo {
+    width: 320px;
+    opacity: 0.3;
+}
+#searchButton {
+    margin-bottom: 10px;
+}
+#clearButton {
+    margin-bottom: 10px;
+}
+#searchField {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    margin-right: 20px;
+}
+#commentBody {
+    word-break: break-word;
+}
+
+</style>
+
+</html>

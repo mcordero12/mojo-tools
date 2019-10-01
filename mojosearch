@@ -1,0 +1,10 @@
+<script type="text/javascript">
+function mojoSearch() {
+    var searchString = document.getElementById('searchField').value;
+    window.open("https://epps.mojohelpdesk.com/ma/#/tickets/search?query_string=" + searchString);
+}
+</script>
+<div align="center">
+<input name="searchField" id="searchField" type="text">
+<input type="button" value="Search" onclick="mojoSearch()">
+</div>
