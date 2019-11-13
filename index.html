@@ -15,7 +15,6 @@ var commentSearch = new XMLHttpRequest;
 var userSearch = new XMLHttpRequest;
 
 var accessKey = "e4bb80570765be1ffdf0ce0c25a1dd7a97269375";
-var accessKey2 = "733623bab0f8c76a06572374fa814620b7f95db3";
 var ticketUrl = "https://app.mojohelpdesk.com/api/v2/tickets/search?query=created_by.id=";
 var commentUrl = "https://app.mojohelpdesk.com/api/v2/tickets/"
 var userUrl = "https://app.mojohelpdesk.com/api/v2/users?access_key=" + accessKey + "\&per_page=3000";
@@ -24,7 +23,7 @@ var allUsers = '';
 var loadingImage = '<img src="loading2.gif">';
 var logo = '<img id="logo" src="epps_logo.png">';
 var searchMsg = "<p> Please type in Student ID number and click Find My Tickets </p>";
-
++6*+
 $(function(){
     $('#searchField').keypress(function(e){
         if (e.which == 13) {
@@ -61,7 +60,7 @@ function mojoQuery() {
                     '<tr>' +
                     '<th scope="col"> </th>' +
                     '<th scope="col"> Ticket Date </th>' +
-                    '<th scope="col"> Title </th>' +
+                    '<th scope="col"> Title & Description </th>' +
                     '</tr>' + 
                     '</thead>' +
                     '<tbody>';
@@ -71,7 +70,7 @@ function mojoQuery() {
                     '<tr>' + 
                     '<td><button type="button" class="btn btn-danger" id="statusButton" onclick="mojoStatus(' + searchResponse[i].id + ',' + searchResponse[i].status_id + ')">Check Status</button></td>' +
                     '<td>' + formatDate(searchResponse[i].created_on) + '</td>' +
-                    '<td>' + searchResponse[i].title + '</td>' +
+                    '<td><b>' + searchResponse[i].title + '</b><br>' + searchResponse[i].description + '</td>' +
                     '</tr>';
             }
             ticketQuery += '</tbody></table>';
@@ -101,12 +100,21 @@ function mojoStatus(id, statusId) {
                     '<th> Date </th>' +
                     '<th> Comment </th>' +
                     '</tr>';
-            for (var i = 0; i < statusResponse.length; i++) {
+            if (Object.keys(statusResponse).length == 0) {
                 statusQuery += 
                     '<tr>' + 
-                    '<td>' + formatDate(statusResponse[i].created_on) + ' </td>' +
-                    '<td><span class="badge">' + getUser(statusResponse[i].user_id) + '</span><p id="commentBody"> ' + statusResponse[i].body + '</p></td>' +
+                    '<td></td>' +
+                    '<td><p id=commentBody>There are currently no comments published for this ticket. Please check back soon as we work to resolve your issue.</td>' +
                     '</tr>';
+            }
+            else {
+                for (var i = 0; i < statusResponse.length; i++) {
+                    statusQuery += 
+                        '<tr>' + 
+                        '<td>' + formatDate(statusResponse[i].created_on) + ' </td>' +
+                        '<td><span class="badge">' + getUser(statusResponse[i].user_id) + '</span><p id="commentBody"> ' + statusResponse[i].body + '</p></td>' +
+                        '</tr>';                
+                }
             }
             document.getElementById('statusModalBody').innerHTML = statusQuery;
         }
